@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./example-backend
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8080
+      - REQUEST_ORIGIN=http://localhost
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=messages
+    expose:
+      - "8080"
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./example-frontend
+      dockerfile: Dockerfile
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost/api
+    expose:
+      - "5000"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    command: redis-server
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: messages
+    volumes:
+      - ./database:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
